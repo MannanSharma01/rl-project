@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Models and logs (large files)
+results/models/
+results/logs/
+logs/
+models/
+checkpoints/
+
+# Tensorboard
+runs/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# nohup output
+nohup.out
+
+# Project internals
+agent.md
