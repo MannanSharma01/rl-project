@@ -1,24 +1,25 @@
 """
 train.py
 --------
-Train a pick-and-place policy using SAC, TD3, or DDPG.
+Train a pick-and-place policy using SAC, TD3, or DDPG, or evaluate a trained model.
 
-Usage:
-    python train.py --algo sac              # default
-    python train.py --algo td3
-    python train.py --algo ddpg
-    python train.py --algo sac --render     # open GUI while training (slow)
-    python train.py --algo sac --timesteps 200000
+Training usage:
+    python train.py                              # Train SAC for 100k steps (default)
+    python train.py --algo td3 --timesteps 200000
+    python train.py --algo ddpg --render        # Train with GUI (much slower)
+
+Evaluation usage:
+    python train.py --enjoy                       # Evaluate best SAC model
+    python train.py --algo td3 --enjoy            # Evaluate best TD3 model
+    python train.py --enjoy --slowdown 2.0        # Evaluate at 2x slower speed
 
 After training, the best model is saved to:
-    models/<algo>_pick_place_best/
-
-To watch the trained policy:
-    python train.py --algo sac --enjoy
+    models/<algo>_pick_place_best/best_model.zip
 """
 
 import argparse
 import os
+import time
 
 from stable_baselines3 import SAC, TD3, DDPG
 from stable_baselines3.common.env_util import make_vec_env
@@ -84,7 +85,7 @@ def train(algo_name, timesteps, render):
     print(f"\nTraining done. Model saved to {model_dir}/final.zip")
 
 
-def enjoy(algo_name):
+def enjoy(algo_name, slowdown=1.0):
     AlgoCls = ALGOS[algo_name]
     model_path = f"models/{algo_name}_pick_place_best/best_model"
     if not os.path.exists(model_path + ".zip"):
@@ -97,10 +98,13 @@ def enjoy(algo_name):
 
     print("\nRunning trained policy — close the PyBullet window to quit.\n")
     episode_reward = 0
+    step_delay = 0.01 * slowdown  # Base delay ~10ms per physics step, scaled by slowdown factor
     try:
         while True:
             action, _ = model.predict(obs, deterministic=True)
             obs, reward, terminated, truncated, _ = env.step(action)
+            if slowdown > 1.0:
+                time.sleep(step_delay)
             episode_reward += reward
             if terminated or truncated:
                 print(f"  Episode reward: {episode_reward:.2f}")
@@ -113,16 +117,20 @@ def enjoy(algo_name):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--algo",       default="sac", choices=["sac", "td3", "ddpg"])
-    parser.add_argument("--timesteps",  type=int, default=100_000)
+    parser = argparse.ArgumentParser(description="Train or evaluate SAC/TD3/DDPG agents on pick-and-place task.")
+    parser.add_argument("--algo",       default="sac", choices=["sac", "td3", "ddpg"],
+                        help="RL algorithm (default: sac)")
+    parser.add_argument("--timesteps",  type=int, default=100_000,
+                        help="Training timesteps (default: 100000)")
     parser.add_argument("--render",     action="store_true",
                         help="Open GUI during training (much slower)")
     parser.add_argument("--enjoy",      action="store_true",
-                        help="Run trained policy instead of training")
+                        help="Evaluate trained policy instead of training")
+    parser.add_argument("--slowdown",   type=float, default=1.0,
+                        help="Slowdown factor for --enjoy (e.g. 2.0 = 2x slower, default: 1.0)")
     args = parser.parse_args()
 
     if args.enjoy:
-        enjoy(args.algo)
+        enjoy(args.algo, slowdown=args.slowdown)
     else:
         train(args.algo, args.timesteps, args.render)

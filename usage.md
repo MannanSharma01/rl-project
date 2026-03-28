@@ -72,41 +72,59 @@ python train.py --render
 ### Evaluation / "watch the robot" command
 
 ```powershell
-python train.py --algo sac --enjoy
+python train.py --enjoy
 ```
-- Loads `models/sac_pick_place_best/best_model.zip`.
-- Opens GUI and runs deterministic policy continuously.
+- Loads the best trained SAC model (`models/sac_pick_place_best/best_model.zip`).
+- Opens PyBullet GUI and runs the deterministic policy continuously.
 - Prints episode reward after each episode.
+- Close the window to exit.
 
-You can swap algorithm:
+Swap algorithm:
 
 ```powershell
 python train.py --algo td3 --enjoy
 python train.py --algo ddpg --enjoy
 ```
 
+Slow down the simulation to watch more carefully:
+
+```powershell
+python train.py --enjoy --slowdown 2.0
+```
+- Runs at 2x slower speed (delays each step by 20ms instead of 10ms).
+- Use any factor > 1.0 for slowdown (e.g., `--slowdown 3.0`, `--slowdown 1.5`).
+
 If the expected model does not exist, script prints:
-- `No saved model at models/<algo>_pick_place_best/best_model.zip - train first.`
+- `No saved model at models/<algo>_pick_place_best/best_model.zip — train first.`
 
 ## 5) CLI flags in `train.py`
 
 - `--algo {sac,td3,ddpg}`
-- Selects RL algorithm class from Stable-Baselines3.
+  - Selects RL algorithm class from Stable-Baselines3 (default: `sac`).
 
 - `--timesteps <int>`
-- Number of environment steps for `model.learn(...)`.
+  - Number of environment steps for training (default: `100000`).
+  - Only used when training (not with `--enjoy`).
 
 - `--render`
-- Enables human GUI mode in the training environment.
+  - Enables human GUI mode in the training environment.
+  - Makes training slower but allows visual monitoring.
 
 - `--enjoy`
-- Skips training and runs the saved best policy in GUI mode.
+  - Evaluates a trained policy instead of training.
+  - Loads the best model and runs it deterministically with rendering enabled.
 
-Decision logic:
-- If `--enjoy` is passed: run `enjoy(...)`.
-- Else: run `train(...)`.
+- `--slowdown <float>`
+  - Slowdown factor for evaluation mode (default: `1.0`).
+  - Only applies when using `--enjoy`.
+  - Example: `--slowdown 2.0` makes the simulation run 2x slower (useful for observation).
 
-## 6) What happens internally when `train.py` runs
+## 6) Program execution logic
+
+- If `--enjoy` is passed: loads and evaluates the trained model (with optional slowdown).
+- Otherwise: trains the model from scratch (or resumes training).
+
+## 7) What happens internally when `train.py` runs
 
 High-level flow:
 
